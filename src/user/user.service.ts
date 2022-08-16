@@ -9,6 +9,7 @@ import { UserRepository } from './user.repository';
 import { hash, compare } from 'bcrypt';
 import { UserResponse } from './dto/response/user-response.dto';
 import { User } from './entities/user.entity';
+import { CoinBaseAuth } from './entities/coinbase-auth.entity';
 
 @Injectable()
 export class UserService {
@@ -51,6 +52,7 @@ export class UserService {
     return {
       _id: user._id,
       email: user.email,
+      isCoinBaseAuthorized: !!user.coinbase_auth,
     };
   }
 
@@ -77,5 +79,20 @@ export class UserService {
     }
 
     return this.buildResponse(user);
+  }
+
+  async getCoinAuth(userId: string): Promise<CoinBaseAuth> {
+    const user = await this.userRepository.findOneById(userId);
+    if (!user) {
+      throw new NotFoundException(`User does not exist by id: ${userId}`);
+    }
+
+    if (!user.coinbase_auth) {
+      throw new UnauthorizedException(
+        'User with id ${userId} is not authorized with a coinbase auth',
+      );
+    }
+
+    return user.coinbase_auth;
   }
 }

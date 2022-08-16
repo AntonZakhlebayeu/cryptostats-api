@@ -6,6 +6,8 @@ import { EncryptionService } from 'src/auth/encryption.service';
 import { UserService } from 'src/user/user.service';
 import { COINBASE_OATH_URI } from './config';
 import { UserResponse } from 'src/user/dto/response/user-response.dto';
+import { CoinBaseAuth } from 'src/user/entities/coinbase-auth.entity';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class CoinBaseAuthService {
@@ -22,7 +24,7 @@ export class CoinBaseAuthService {
   }
 
   private buildAuthorizeUrl() {
-    const authorizeUrl = new URL('https://coinbase.com/oauth/authorize');
+    const authorizeUrl = new URL(`${COINBASE_OATH_URI}/authorize`);
     authorizeUrl.searchParams.append('response_type', 'code');
     authorizeUrl.searchParams.append(
       'client_id',
@@ -52,7 +54,7 @@ export class CoinBaseAuthService {
   }
 
   private getTokensFromCode(code: string) {
-    return this.httpService.post('https://api.coinbase.com/oauth/token', {
+    return this.httpService.post(`${COINBASE_OATH_URI}/token`, {
       grant_type: 'authorization_code',
       code,
       client_id: this.configService.get('COINBASE_CLIENT_ID'),
@@ -75,6 +77,31 @@ export class CoinBaseAuthService {
         refreshToken: this.encryptionService.encrypt(refreshToken),
         expires,
       },
+    });
+  }
+
+  async getAccessToken(userId: string): Promise<string> {
+    const coinBaseAuth = await this.userService.getCoinAuth(userId);
+
+    if (new Date().getTime() >= coinBaseAuth.expires.getTime()) {
+      const response$ = this.refreshAccessToken(coinBaseAuth);
+      const response = await lastValueFrom(response$);
+
+      await this.updateUserCoinbaseAuth(response.data, userId);
+
+      return response.data.access_token;
+    }
+
+    return this.encryptionService.decrypt(coinBaseAuth.accessToken);
+  }
+
+  private refreshAccessToken(coinBaseAuth: CoinBaseAuth) {
+    return this.httpService.post(`${COINBASE_OATH_URI}/token`, {
+      grant_type: 'refresh_token',
+      refresh_token: this.encryptionService.decrypt(coinBaseAuth.refreshToken),
+      client_id: this.configService.get('COINBASE_CLIENT_ID'),
+      client_secret: this.configService.get('COINBASE_CLIENT_SECRET'),
+      redirect_uri: this.configService.get('COINBASE_REDIRECT_URI'),
     });
   }
 }
