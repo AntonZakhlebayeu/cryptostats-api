@@ -59,4 +59,14 @@ export class UserService {
 
     return this.buildResponse(user);
   }
+
+  async getUserById(userId: string): Promise<UserResponse> {
+    const user = await this.userRepository.findOneById(userId);
+
+    if (!user) {
+      throw new NotFoundException(`User does not exist by id: ${userId}`);
+    }
+
+    return this.buildResponse(user);
+  }
 }
