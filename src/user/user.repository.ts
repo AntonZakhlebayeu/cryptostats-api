@@ -22,4 +22,8 @@ export class UserRepository {
   async findOneById(id: string): Promise<User> {
     return this.user.findById(id);
   }
+
+  async updateOne(userId: string, data: Partial<User>): Promise<User> {
+    return this.user.findByIdAndUpdate(userId, data, { new: true });
+  }
 }
