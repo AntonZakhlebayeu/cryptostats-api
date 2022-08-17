@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserRequest } from './dto/request/create-user-request.dto';
 import { UserRepository } from './user.repository';
-import { hash, compare } from 'bcrypt';
+import { hash, compare } from 'bcryptjs';
 import { UserResponse } from './dto/response/user-response.dto';
 import { User } from './entities/user.entity';
 import { CoinBaseAuth } from './entities/coinbase-auth.entity';
